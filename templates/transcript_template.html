@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ guild_name }} - #{{ channel_name }} Transcript</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Discord 2026 Dark Theme Variables */
+        :root {
+            --bg-body: #1e1f22;
+            --bg-popout: #111214;
+            --bg-message-hover: #2a2c31;
+            --bg-embed: #2b2d31;
+            --text-primary: #f2f3f5;
+            --text-muted: #b5bac1;
+            --text-link: #00a8fc;
+            --border-subtle: #3c3f45;
+            --status-online: #23a55a;
+            --status-idle: #f0b232;
+            --status-dnd: #ed4245;
+            --status-offline: #80848e;
+            --role-bg: #2b2d31;
+            --mention-bg: #3d2e4b;
+            --mention-text: #c9b0ff;
+            --mention-user-bg: rgba(88, 101, 242, 0.3);
+            --mention-user-text: #dee0fc;
+            --mention-channel-bg: rgba(88, 101, 242, 0.3);
+            --mention-channel-text: #dee0fc;
+            --mention-role-bg: rgba(88, 101, 242, 0.3);
+            --mention-role-text: #dee0fc;
+            --embed-bg: #2b2d31;
+            --embed-border-radius: 8px;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            font-family: 'gg sans', 'Whitney', 'Helvetica Neue', 'Segoe UI', Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            padding: 2rem 1rem;
+        }
+
+        /* Support for Mathematical Alphanumeric Symbols and other Unicode ranges */
+        @font-face {
+            font-family: 'Noto Sans Math';
+            src: local('Noto Sans Math'), local('Noto Sans');
+            unicode-range: U+1D400-1D7FF; /* Mathematical Alphanumeric Symbols */
+            font-display: swap;
+        }
+
+        body, .about-me, .message-text {
+            font-family: 'gg sans', 'Whitney', 'Noto Sans Math', 'Helvetica Neue', 'Segoe UI', Helvetica, Arial, sans-serif;
+        }
+
+        .transcript-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: var(--bg-embed);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .transcript-header {
+            background-color: var(--bg-body);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .transcript-header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        .transcript-header .channel-info {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+        .transcript-meta {
+            background-color: var(--bg-embed);
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            color: #9aa2ae;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .messages {
+            padding: 1rem 0;
+        }
+
+        .message {
+            display: flex;
+            padding: 0.75rem 1.5rem;
+            transition: background-color 0.1s ease;
+            position: relative;
+        }
+        .message:hover {
+            background-color: var(--bg-message-hover);
+        }
+        .message-avatar {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-right: 1rem;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        .message-avatar:hover {
+            transform: scale(1.05);
+        }
+        .message-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .message-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .message-author {
+            font-weight: 600;
+            cursor: pointer;
+            transition: text-decoration 0.1s;
+        }
+        .message-author:hover {
+            text-decoration: underline;
+        }
+        .message-timestamp {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .message-text {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .message-text strong { font-weight: 700; }
+        .message-text em { font-style: italic; }
+        .message-text u { text-decoration: underline; }
+        .message-text s { text-decoration: line-through; }
+        .message-text code {
+            background-color: var(--bg-body);
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        .message-text pre {
+            background-color: #111214;
+            padding: 0.75rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.875rem;
+            margin: 0.5rem 0;
+        }
+
+        /* Mention Styles - Discord-like */
+        .mention {
+            border-radius: 12px;
+            padding: 0 0.2rem;
+            font-weight: 500;
+            transition: background-color 0.1s ease;
+            cursor: pointer;
+        }
+        .mention-user {
+            background-color: rgba(88, 101, 242, 0.3);
+            color: #dee0fc;
+            border-radius: 12px;
+            padding: 0 0.2rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .mention-user:hover {
+            background-color: rgba(88, 101, 242, 0.5);
+        }
+        .mention-channel {
+            background-color: var(--mention-channel-bg);
+            color: var(--mention-channel-text);
+        }
+        .mention-channel:hover {
+            background-color: rgba(88, 101, 242, 0.5);
+        }
+        .mention-role {
+            background-color: var(--mention-role-bg);
+            color: var(--mention-role-text);
+        }
+        .mention-role:hover {
+            background-color: rgba(88, 101, 242, 0.5);
+        }
+
+        .custom-emoji {
+            width: 1.25rem;
+            height: 1.25rem;
+            vertical-align: middle;
+            object-fit: contain;
+        }
+        .timestamp {
+            color: var(--text-muted);
+        }
+
+        /* Embed Styles - Discord 2026 */
+        .embed {
+            background-color: var(--embed-bg);
+            border-radius: var(--embed-border-radius);
+            margin-top: 0.5rem;
+            display: inline-flex;
+            max-width: 520px;
+            width: 100%;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .embed-content {
+            padding: 0.5rem 0.75rem;
+            flex: 1;
+        }
+        .embed-title {
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+        .embed-description {
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            margin-top: 0.25rem;
+        }
+        .embed-field {
+            margin-top: 0.5rem;
+        }
+        .embed-field-name {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .embed-field-value {
+            font-size: 0.875rem;
+        }
+        /* Embed buttons */
+        .embed .button {
+            background-color: #4e5058;
+            border: none;
+            border-radius: 4px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #ffffff;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            transition: background-color 0.1s ease;
+        }
+        .embed .button-primary {
+            background-color: #5865f2;
+        }
+        .embed .button-primary:hover {
+            background-color: #4752c4;
+        }
+        .embed .button-danger {
+            background-color: #da373c;
+        }
+        .embed .button-danger:hover {
+            background-color: #ba2b2f;
+        }
+        .embed .button-link {
+            background-color: transparent;
+            color: var(--text-link);
+        }
+        .embed .button-link:hover {
+            text-decoration: underline;
+        }
+
+        .components {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .button {
+            background-color: #4e5058;
+            border: none;
+            border-radius: 4px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #ffffff;
+            cursor: default;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .button-primary {
+            background-color: #5865f2;
+        }
+        .button-danger {
+            background-color: #da373c;
+        }
+        .button-link {
+            background-color: transparent;
+            color: var(--text-link);
+        }
+
+        .attachments {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .attachment {
+            background-color: var(--bg-body);
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .attachment a {
+            color: var(--text-link);
+            text-decoration: none;
+        }
+
+        /* ===== DISCORD 2026 PROFILE POPOUT (TOOLTIP) ===== */
+        .profile-tooltip {
+            position: fixed;
+            z-index: 1000;
+            width: 300px;
+            background: var(--bg-popout);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s ease, visibility 0.15s ease;
+            pointer-events: none;
+        }
+        .profile-tooltip.visible {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        .tooltip-banner {
+            height: 105px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        .avatar-wrapper {
+            position: absolute;
+            top: 76px;
+            left: 16px;
+            width: 80px;
+            height: 80px;
+            background: var(--bg-popout);
+            border-radius: 50%;
+            padding: 6px;
+        }
+        .tooltip-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--bg-body);
+            overflow: hidden;
+        }
+        .tooltip-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .status-dot {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 4px solid var(--bg-popout);
+            background-color: var(--status-offline);
+        }
+        .status-dot.online { background-color: var(--status-online); }
+        .status-dot.idle { background-color: var(--status-idle); }
+        .status-dot.dnd { background-color: var(--status-dnd); }
+        .tooltip-body {
+            padding: 54px 16px 16px;
+            background: var(--bg-body);
+            margin: 4px;
+            border-radius: 8px;
+        }
+        .display-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .username {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            margin: 16px 0 8px 0;
+        }
+        .section-title:first-of-type {
+            margin-top: 0;
+        }
+        .about-me {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        .roles-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .role-pill {
+            background: var(--role-bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .role-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .member-since {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .badges {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .badge-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 0.5rem;
+            }
+            .message {
+                padding: 0.5rem 1rem;
+            }
+            .message-avatar {
+                width: 32px;
+                height: 32px;
+            }
+            .profile-tooltip {
+                width: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="transcript-container">
+        <div class="transcript-header">
+            <h1>#{{ channel_name }}</h1>
+            <div class="channel-info">{{ guild_name }} &nbsp;•&nbsp; {{ message_count }} messages</div>
+        </div>
+        <div class="transcript-meta">
+            Exported on {{ export_date }}
+        </div>
+        <div class="messages" id="messages-container">
+            {% for message in messages %}
+            <div class="message"
+                 data-author-id="{{ message.author_id }}"
+                 data-author-name="{{ message.author_name }}"
+                 data-author-username="{{ message.author_username }}"
+                 data-author-global-name="{{ message.author_global_name|default('') }}"
+                 data-author-avatar="{{ message.author_avatar }}"
+                 data-author-banner="{{ message.author_banner }}"
+                 data-author-badges='{{ message.author_badges_json }}'
+                 data-author-roles='{{ message.author_roles_json }}'
+                 data-author-joined-at="{{ message.author_joined_at }}"
+                 data-author-pronouns="{{ message.author_pronouns }}"
+                 data-author-status="{{ message.author_status }}"
+                 data-author-color="{{ message.author_color|default('#ffffff') }}"
+                 data-author-about-me-html="{{ message.author_about_me_html|default('')|escape }}">
+                <div class="message-avatar" onclick="showProfileTooltip(this.closest('.message'), event)">
+                    <img src="{{ message.author_avatar }}" alt="Avatar" loading="lazy" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-author" data-author-color="{{ message.author_color|default('#ffffff') }}" onclick="showProfileTooltip(this.closest('.message'), event)">{{ message.author_name }}</span>
+                        <span class="message-timestamp">{{ message.timestamp|discord_timestamp }}</span>
+                    </div>
+                    <div class="message-text">
+                        {{ message.html_content|safe }}
+                    </div>
+                    {% if message.attachments %}
+                    <div class="attachments">
+                        {% for att in message.attachments %}
+                        <div class="attachment">
+                            📎 <a href="{{ att.url }}" target="_blank">{{ att.filename }}</a> ({{ att.size|filesizeformat }})
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if message.embeds %}
+                        {% for embed in message.embeds %}
+                        <div class="embed" {% if embed.color %}style="border-left-color: {{ embed.color }}; border-left-width: 4px; border-left-style: solid;"{% endif %}>
+                            <div class="embed-content">
+                                {% if embed.title %}<div class="embed-title">{{ embed.title }}</div>{% endif %}
+                                {% if embed.description %}<div class="embed-description">{{ embed.description }}</div>{% endif %}
+                                {% for field in embed.fields %}
+                                <div class="embed-field">
+                                    <div class="embed-field-name">{{ field.name }}</div>
+                                    <div class="embed-field-value">{{ field.value }}</div>
+                                </div>
+                                {% endfor %}
+                                {% if embed.buttons %}
+                                <div class="components">
+                                    {% for button in embed.buttons %}
+                                    <span class="button button-{{ button.style }}">{{ button.label }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    {% if message.components %}
+                    <div class="components">
+                        {% for comp in message.components %}
+                        <span class="button button-{{ comp.style }}">{{ comp.label }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Profile Tooltip (Discord 2026 Popout Style) -->
+    <div id="profileTooltip" class="profile-tooltip">
+        <div class="tooltip-banner" id="tooltipBanner"></div>
+        <div class="avatar-wrapper">
+            <div class="tooltip-avatar" id="tooltipAvatar"></div>
+            <div class="status-dot" id="statusDot"></div>
+        </div>
+        <div class="tooltip-body">
+            <div class="display-name" id="tooltipDisplayName"></div>
+            <div class="username" id="tooltipUsername"></div>
+            <div class="badges" id="tooltipBadges"></div>
+            <div class="section-title">ABOUT ME</div>
+            <div class="about-me" id="tooltipAboutMe"></div>
+            <div class="section-title">ROLES</div>
+            <div class="roles-container" id="tooltipRoles"></div>
+            <div class="member-since" id="tooltipMemberSince"></div>
+        </div>
+    </div>
+
+    <script>
+        // Apply author name colors from data-author-color attribute
+        document.querySelectorAll('.message-author').forEach(elem => {
+            const color = elem.getAttribute('data-author-color');
+            if (color && color !== '#ffffff') {
+                elem.style.color = color;
+            }
+        });
+
+        // Make mentions clickable to show profile
+        document.querySelectorAll('.mention-user').forEach(mention => {
+            mention.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const messageElement = mention.closest('.message');
+                if (messageElement) {
+                    showProfileTooltip(messageElement, e);
+                }
+            });
+        });
+
+        let tooltipTimeout = null;
+        const tooltip = document.getElementById('profileTooltip');
+
+        function showProfileTooltip(messageElement, event) {
+            if (tooltipTimeout) clearTimeout(tooltipTimeout);
+
+            // Extract data from the message div
+            const authorName = messageElement.getAttribute('data-author-name') || '';
+            const authorUsername = messageElement.getAttribute('data-author-username') || '';
+            const authorId = messageElement.getAttribute('data-author-id') || '';
+            const avatarUrl = messageElement.getAttribute('data-author-avatar') || 'https://cdn.discordapp.com/embed/avatars/0.png';
+            const bannerUrl = messageElement.getAttribute('data-author-banner') || '';
+            const badgesJson = messageElement.getAttribute('data-author-badges');
+            const rolesJson = messageElement.getAttribute('data-author-roles');
+            const joinedAt = messageElement.getAttribute('data-author-joined-at') || 'Unknown';
+            const status = messageElement.getAttribute('data-author-status') || 'offline';
+            const authorColor = messageElement.getAttribute('data-author-color') || '#ffffff';
+            const aboutMeHtml = messageElement.getAttribute('data-author-about-me-html') || '';
+
+            let badges = [];
+            let roles = [];
+            try {
+                if (badgesJson && badgesJson !== 'undefined') badges = JSON.parse(badgesJson);
+                if (rolesJson && rolesJson !== 'undefined') roles = JSON.parse(rolesJson);
+            } catch(e) {}
+
+            // Display name and username
+            document.getElementById('tooltipDisplayName').innerHTML = `<span style="color: ${authorColor}">${escapeHtml(authorName)}</span>`;
+            document.getElementById('tooltipUsername').innerText = `@${authorUsername || authorId}`;
+
+            // About Me (HTML safe – already sanitized by markdown parser)
+            document.getElementById('tooltipAboutMe').innerHTML = aboutMeHtml || 'No "About Me" section provided.';
+
+            // Avatar
+            const avatarContainer = document.getElementById('tooltipAvatar');
+            avatarContainer.innerHTML = '';
+            const avatarImg = document.createElement('img');
+            avatarImg.src = avatarUrl;
+            avatarImg.onerror = function() { this.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; };
+            avatarContainer.appendChild(avatarImg);
+
+            // Status dot
+            const statusDot = document.getElementById('statusDot');
+            statusDot.className = 'status-dot';
+            if (status === 'online') statusDot.classList.add('online');
+            else if (status === 'idle') statusDot.classList.add('idle');
+            else if (status === 'dnd') statusDot.classList.add('dnd');
+            else statusDot.classList.add('offline');
+
+            // Banner
+            const bannerElem = document.getElementById('tooltipBanner');
+            if (bannerUrl && bannerUrl !== '') {
+                bannerElem.style.backgroundImage = `url('${bannerUrl}')`;
+                bannerElem.style.backgroundColor = 'transparent';
+            } else {
+                bannerElem.style.backgroundImage = 'none';
+                bannerElem.style.backgroundColor = authorColor !== '#ffffff' ? authorColor : '#5865f2';
+            }
+
+            // Badges
+            const badgesContainer = document.getElementById('tooltipBadges');
+            badgesContainer.innerHTML = '';
+            for (const badge of badges) {
+                const img = document.createElement('img');
+                img.src = badge.icon_url;
+                img.alt = badge.name;
+                img.title = badge.name;
+                img.className = 'badge-icon';
+                badgesContainer.appendChild(img);
+            }
+
+            // Roles (pill style with colored dots)
+            const rolesContainer = document.getElementById('tooltipRoles');
+            rolesContainer.innerHTML = '';
+            for (const role of roles.slice(0, 5)) {
+                const pill = document.createElement('div');
+                pill.className = 'role-pill';
+                const dot = document.createElement('div');
+                dot.className = 'role-dot';
+                dot.style.backgroundColor = role.color || '#2b2d31';
+                pill.appendChild(dot);
+                const nameSpan = document.createElement('span');
+                nameSpan.innerText = role.name;
+                pill.appendChild(nameSpan);
+                rolesContainer.appendChild(pill);
+            }
+            if (roles.length > 5) {
+                const morePill = document.createElement('div');
+                morePill.className = 'role-pill';
+                morePill.innerText = `+${roles.length - 5} more`;
+                rolesContainer.appendChild(morePill);
+            }
+
+            // Member Since (server join date)
+            document.getElementById('tooltipMemberSince').innerHTML = `📅 Member Since: ${joinedAt}`;
+
+            // Position tooltip to the right of the cursor
+            let x = event.clientX + 15;
+            let y = event.clientY + 15;
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+
+            // Ensure tooltip stays within viewport
+            const rect = tooltip.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            if (rect.right > viewportWidth) {
+                tooltip.style.left = (viewportWidth - rect.width - 10) + 'px';
+            }
+            if (rect.bottom > viewportHeight) {
+                tooltip.style.top = (viewportHeight - rect.height - 10) + 'px';
+            }
+
+            tooltip.classList.add('visible');
+
+            // Auto-hide after 5 seconds
+            const autoHide = setTimeout(() => {
+                tooltip.classList.remove('visible');
+            }, 5000);
+            tooltipTimeout = autoHide;
+
+            // Keep visible on hover
+            tooltip.onmouseenter = () => { clearTimeout(tooltipTimeout); };
+            tooltip.onmouseleave = () => { tooltip.classList.remove('visible'); };
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close tooltip when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!tooltip.contains(e.target) && !e.target.closest('.message-avatar') && !e.target.closest('.message-author')) {
+                tooltip.classList.remove('visible');
+                if (tooltipTimeout) clearTimeout(tooltipTimeout);
+            }
+        });
+    </script>
+</body>
+</html>
