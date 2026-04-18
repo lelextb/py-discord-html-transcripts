@@ -18,7 +18,7 @@ A production‑ready Python library for `discord.py` bots that exports complete 
 ![Transcript Preview](assets/screenshot-transcript.png)
 *Example transcript output*
 
-![Profile Tooltip](assets/screenshot-tooltip.png)
+![Profile Tooltip](assets/screenshot-tooltip2.png)
 *Clickable user profile tooltip*
 
 ## 📦 Installation
