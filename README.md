@@ -52,4 +52,4 @@ Issues and pull requests are welcome.
 GNU General Public License v3.0
 
 ---
-Made with ❤️ by [LelexTB](https://github.com/lelextb)
+Made with ❤️ by [alexwakrod](https://github.com/alexwakrod)
